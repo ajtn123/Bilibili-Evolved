@@ -3,10 +3,15 @@ run-name: Dashboard Home Preview
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - codex/dashboard-home-preview
+    paths:
+      - .github/workflows/build.yml
 
 jobs:
   dashboard-home-preview:
-    if: github.ref == 'refs/heads/codex/dashboard-home-preview'
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/codex/dashboard-home-preview'
     permissions:
       contents: write
     uses: ./.github/workflows/dashboard-home-preview.yml
