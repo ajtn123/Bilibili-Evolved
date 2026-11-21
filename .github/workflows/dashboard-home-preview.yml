@@ -1,0 +1,107 @@
+name: Dashboard Home Preview
+
+on:
+  push:
+    branches:
+      - codex/dashboard-home-preview
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dashboard-home-preview
+  cancel-in-progress: false
+
+env:
+  BUNDLE_PATH: registry/dist/components/style/home-redesign/dashboard.js
+  PUBLISH_BRANCH: codex/dashboard-home-preview-dist
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: pnpm/action-setup@v4
+      - name: Install dependencies
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm --dir registry install --frozen-lockfile
+      - name: Build Dashboard Home
+        run: |
+          pnpm exec tsx -e '
+            import { webpack } from "webpack"
+            import { buildByEntry } from "./registry/webpack/config"
+
+            const src = "./registry/lib/components/"
+            const config = buildByEntry({
+              src,
+              type: "component",
+              entry: src + "style/home-redesign/dashboard/index.ts",
+            })
+            webpack(config, (error, stats) => {
+              if (error) {
+                console.error(error)
+                process.exitCode = 1
+                return
+              }
+              console.log(stats?.toString({ preset: "errors-warnings" }))
+              process.exitCode = stats && !stats.hasErrors() ? 0 : 1
+            })
+          '
+          mkdir -p "$RUNNER_TEMP/dashboard-home"
+          sed '/^\/\/# sourceMappingURL=/d' "$BUNDLE_PATH" > "$RUNNER_TEMP/dashboard-home/dashboard.js"
+          test -s "$RUNNER_TEMP/dashboard-home/dashboard.js"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dashboard-home
+          path: ${{ runner.temp }}/dashboard-home/dashboard.js
+          if-no-files-found: error
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: dashboard-home
+          path: ${{ runner.temp }}/dashboard-home
+      - name: Publish component update
+        shell: bash
+        run: |
+          latest=$(git ls-remote --exit-code origin "$GITHUB_REF" | cut -f1)
+          if [[ "$latest" != "$GITHUB_SHA" ]]; then
+            echo "A newer preview commit is available."
+            exit 0
+          fi
+
+          output_ref="refs/heads/$PUBLISH_BRANCH"
+          if git ls-remote --exit-code origin "$output_ref" > /dev/null; then
+            git fetch --depth=1 origin "$output_ref"
+            git switch --detach FETCH_HEAD
+          else
+            status=$?
+            if [[ "$status" != 2 ]]; then
+              exit "$status"
+            fi
+            git switch --orphan "$PUBLISH_BRANCH"
+          fi
+
+          install -Dm644 "$RUNNER_TEMP/dashboard-home/dashboard.js" "$BUNDLE_PATH"
+          git add -- "$BUNDLE_PATH"
+          if ! git diff --cached --quiet; then
+            git -c user.name='github-actions[bot]' \
+              -c user.email='41898282+github-actions[bot]@users.noreply.github.com' \
+              commit -m "Build Dashboard Home from ${GITHUB_SHA::12}"
+            git push origin "HEAD:$output_ref"
+          fi
+
+          url="https://raw.githubusercontent.com/$GITHUB_REPOSITORY/$PUBLISH_BRANCH/$BUNDLE_PATH"
+          printf '[Dashboard Home component update URL](%s)\n' "$url" >> "$GITHUB_STEP_SUMMARY"
