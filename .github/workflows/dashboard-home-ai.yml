@@ -1,0 +1,86 @@
+name: Dashboard Home AI Preview
+
+on:
+  push:
+    branches:
+      - codex/dashboard-home-ai
+
+permissions:
+  contents: write
+
+concurrency:
+  group: dashboard-home-ai-preview
+  cancel-in-progress: true
+
+env:
+  DASHBOARD_BUNDLE: registry/dist/components/style/home-redesign/dashboard.js
+  PLUGIN_BUNDLE: registry/dist/plugins/style/dashboard-home-ai.js
+  PREVIEW_DIST: codex/dashboard-home-preview-dist
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: pnpm/action-setup@v4
+      - name: Install dependencies
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm --dir registry install --frozen-lockfile
+      - name: Build the preview bundles
+        run: |
+          node --import tsx <<'NODE'
+            const { webpack } = require("webpack")
+            const { buildByEntry } = require("./registry/webpack/config.ts")
+
+            const configs = [
+              ["plugin", "style/dashboard-home-ai"],
+              ["component", "style/home-redesign/dashboard"],
+            ].map(([type, id]) => {
+              const src = "./registry/lib/" + type + "s/"
+              return buildByEntry({ src, type, entry: src + id + "/index.ts" })
+            })
+            webpack(configs, (error, stats) => {
+              if (error) {
+                console.error(error)
+                process.exitCode = 1
+                return
+              }
+              console.log(stats?.toString({ preset: "errors-warnings" }))
+              process.exitCode = stats && !stats.hasErrors() ? 0 : 1
+            })
+          NODE
+      - uses: actions/checkout@v4
+        with:
+          ref: codex/dashboard-home-preview-dist
+          path: preview-dist
+      - name: Publish the plugin
+        working-directory: preview-dist
+        run: |
+          mkdir -p "$(dirname "$PLUGIN_BUNDLE")"
+          sed '/^\/\/# sourceMappingURL=/d' "../$PLUGIN_BUNDLE" > "$PLUGIN_BUNDLE"
+          test -s "$PLUGIN_BUNDLE"
+          git add -- "$PLUGIN_BUNDLE"
+
+          # Upgrade older Dashboard Home builds that cannot load plugin tabs.
+          if ! grep -qsF 'dashboardHome.tabs' "$DASHBOARD_BUNDLE"; then
+            mkdir -p "$(dirname "$DASHBOARD_BUNDLE")"
+            sed '/^\/\/# sourceMappingURL=/d' "../$DASHBOARD_BUNDLE" > "$DASHBOARD_BUNDLE"
+            test -s "$DASHBOARD_BUNDLE"
+            git add -- "$DASHBOARD_BUNDLE"
+          fi
+
+          if ! git diff --cached --quiet; then
+            git -c user.name='github-actions[bot]' \
+              -c user.email='41898282+github-actions[bot]@users.noreply.github.com' \
+              commit -m "Build Dashboard Home AI from ${GITHUB_SHA::12}"
+            git push origin "HEAD:refs/heads/$PREVIEW_DIST"
+          fi
+
+          printf '[AI assistant plugin](https://raw.githubusercontent.com/%s/%s/%s)\n' \
+            "$GITHUB_REPOSITORY" "$PREVIEW_DIST" "$PLUGIN_BUNDLE" >> "$GITHUB_STEP_SUMMARY"

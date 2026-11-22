@@ -1,0 +1,114 @@
+@import 'common';
+
+.dashboard-home-ai {
+  @include v-stretch(var(--dashboard-home-space-md));
+  box-sizing: border-box;
+  inline-size: min(100%, 60rem);
+  min-inline-size: 0;
+  padding-inline: var(--dashboard-home-grid-padding-inline);
+
+  &-header,
+  &-actions {
+    @include h-center(var(--dashboard-home-space-sm));
+    flex-wrap: wrap;
+  }
+
+  &-header {
+    justify-content: space-between;
+
+    h2 {
+      @include h-center(var(--dashboard-home-space-sm));
+    }
+
+    .be-icon {
+      color: var(--theme-color);
+    }
+  }
+
+  &-log {
+    @include v-stretch(var(--dashboard-home-space-md));
+    min-block-size: 10rem;
+    max-block-size: min(56vh, 34rem);
+    overflow: auto;
+    overscroll-behavior: contain;
+    padding: var(--dashboard-home-space-md);
+    border: var(--home-card-border);
+    border-radius: var(--home-card-radius);
+
+    &:focus-visible {
+      outline: var(--dashboard-home-accent-stroke-width) solid var(--theme-color);
+      outline-offset: var(--dashboard-home-space-2xs);
+    }
+  }
+
+  &-turn {
+    @include v-stretch(var(--dashboard-home-space-sm));
+  }
+
+  &-message {
+    align-self: start;
+    max-inline-size: min(100%, 48rem);
+    padding: var(--dashboard-home-space-sm) var(--dashboard-home-space-md);
+    border-radius: var(--dashboard-home-control-radius);
+    background-color: var(--dashboard-home-muted-surface);
+    overflow-wrap: anywhere;
+
+    &.is-user {
+      align-self: end;
+      background-color: var(--dashboard-home-highlight-background);
+    }
+
+    p {
+      margin: 0;
+      white-space: pre-wrap;
+    }
+
+    a {
+      color: var(--dashboard-home-emphasis-color, inherit);
+      text-decoration: underline;
+    }
+  }
+
+  &-empty,
+  &-feedback {
+    margin: 0;
+  }
+
+  &-empty {
+    color: var(--dashboard-home-muted-text-color);
+  }
+
+  &-form {
+    @include v-stretch(var(--dashboard-home-space-xs));
+
+    button {
+      align-self: end;
+    }
+  }
+
+  select,
+  textarea {
+    box-sizing: border-box;
+    min-inline-size: 0;
+    max-inline-size: 100%;
+    padding: var(--dashboard-home-space-xs) var(--dashboard-home-space-sm);
+    border: var(--dashboard-home-control-border);
+    border-radius: var(--dashboard-home-control-radius);
+    background-color: var(--home-background-color);
+    color: inherit;
+    font: inherit;
+  }
+
+  textarea {
+    resize: vertical;
+
+    &:focus-visible {
+      outline: var(--dashboard-home-accent-stroke-width) solid var(--theme-color);
+      outline-offset: var(--dashboard-home-space-2xs);
+    }
+  }
+
+  button:disabled {
+    opacity: 0.5;
+  }
+}
