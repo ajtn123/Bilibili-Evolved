@@ -15,6 +15,10 @@ declare module '*.woff2' {
   const base64: string
   export default base64
 }
+declare module '*.ts?raw' {
+  const source: string
+  export default source
+}
 declare module '*.md' {
   const md: string
   export default md

@@ -110,7 +110,7 @@ export const getDefaultConfig = (src = relativePath('src')): Configuration => {
         },
         {
           test: /\.tsx?$/,
-          use: [...tsLoaders],
+          oneOf: [{ resourceQuery: /^\?raw$/, type: 'asset/source' }, { use: [...tsLoaders] }],
           include: [src, relativePath('tests'), relativePath('webpack')],
         },
         {

@@ -1,4 +1,9 @@
 @import 'common';
+@import 'markdown';
+
+.dashboard-home-tabs > [role='tabpanel']:has(> .dashboard-home-ai) {
+  flex-grow: 1;
+}
 
 .dashboard-home-ai {
   @include v-stretch(var(--dashboard-home-space-md));
@@ -7,83 +12,113 @@
   min-inline-size: 0;
   padding-inline: var(--dashboard-home-grid-padding-inline);
 
-  &-header,
-  &-actions {
-    @include h-center(var(--dashboard-home-space-sm));
-    flex-wrap: wrap;
-  }
-
-  &-header {
-    justify-content: space-between;
-
-    h2 {
-      @include h-center(var(--dashboard-home-space-sm));
-    }
-
-    .be-icon {
-      color: var(--theme-color);
-    }
-  }
-
   &-log {
     @include v-stretch(var(--dashboard-home-space-md));
-    min-block-size: 10rem;
-    max-block-size: min(56vh, 34rem);
-    overflow: auto;
-    overscroll-behavior: contain;
-    padding: var(--dashboard-home-space-md);
-    border: var(--home-card-border);
-    border-radius: var(--home-card-radius);
-
-    &:focus-visible {
-      outline: var(--dashboard-home-accent-stroke-width) solid var(--theme-color);
-      outline-offset: var(--dashboard-home-space-2xs);
-    }
+    min-inline-size: 0;
   }
 
   &-turn {
     @include v-stretch(var(--dashboard-home-space-sm));
   }
 
+  &-message,
+  &-reply {
+    overflow-wrap: anywhere;
+  }
+
   &-message {
     align-self: start;
-    max-inline-size: min(100%, 48rem);
+    max-inline-size: 100%;
     padding: var(--dashboard-home-space-sm) var(--dashboard-home-space-md);
     border-radius: var(--dashboard-home-control-radius);
     background-color: var(--dashboard-home-muted-surface);
-    overflow-wrap: anywhere;
 
     &.is-user {
       align-self: end;
       background-color: var(--dashboard-home-highlight-background);
     }
 
-    p {
+    p,
+    pre {
       margin: 0;
       white-space: pre-wrap;
     }
 
-    a {
-      color: var(--dashboard-home-emphasis-color, inherit);
-      text-decoration: underline;
+    > * + * {
+      margin-block-start: var(--dashboard-home-space-xs);
+    }
+
+    summary {
+      cursor: pointer;
+    }
+  }
+
+  &-reply {
+    @include v-stretch(var(--dashboard-home-space-xs));
+    min-inline-size: 0;
+  }
+
+  &-markdown {
+    @include markdown();
+
+    > :first-child {
+      margin-block-start: 0;
+    }
+
+    img {
+      max-inline-size: 100%;
+      block-size: auto;
+    }
+
+    table {
+      border-collapse: collapse;
+    }
+
+    th,
+    td {
+      padding: var(--dashboard-home-space-2xs) var(--dashboard-home-space-xs);
     }
   }
 
   &-empty,
-  &-feedback {
+  &-feedback,
+  &-plain {
     margin: 0;
+  }
+
+  &-plain {
+    white-space: pre-wrap;
+  }
+
+  &-feedback:empty {
+    display: none;
   }
 
   &-empty {
     color: var(--dashboard-home-muted-text-color);
   }
 
+  &-composer {
+    @include v-stretch(var(--dashboard-home-space-xs));
+    position: sticky;
+    inset-block-end: 0;
+    margin-block-start: auto;
+    padding-block: var(--dashboard-home-space-sm)
+      max(var(--dashboard-home-space-sm), env(safe-area-inset-bottom));
+    background-color: var(--home-base-color);
+  }
+
   &-form {
     @include v-stretch(var(--dashboard-home-space-xs));
+  }
 
-    button {
-      align-self: end;
-    }
+  &-actions {
+    @include h-center(var(--dashboard-home-space-sm));
+    flex-wrap: wrap;
+  }
+
+  &-submit {
+    margin-inline-start: auto;
   }
 
   select,
@@ -100,6 +135,7 @@
   }
 
   textarea {
+    max-block-size: 30dvh;
     resize: vertical;
 
     &:focus-visible {
