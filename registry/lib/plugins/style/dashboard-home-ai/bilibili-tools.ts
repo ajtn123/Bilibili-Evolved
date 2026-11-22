@@ -2,6 +2,7 @@ import dashboardUrlsSource from '../../../components/style/home-redesign/dashboa
 
 const responseLimit = 0x10000
 const requestTimeoutMs = 0x2000
+const integerRoundTolerance = 0.001
 
 const example = { type: 'request', method: 'GET', url: 'https://api.bilibili.com/…', clean: true }
 
@@ -22,7 +23,7 @@ const decorativeFields = new Map([
 export const bilibiliToolsPrompt = [
   '请求 Bilibili API 时，每次只提交一个请求，由插件按照用户选择的审批模式处理。',
   '仅允许请求 bilibili.com 及其子域名的 HTTPS 地址，请根据下方 urls.ts 的接口参考选择参数。',
-  'clean 为 true 时，精简响应：省略空字段、动态装扮和菜单等界面数据，省略富文本中重复的原文，并将静态资源地址替换为编号 <static-N>。卡片可用这些编号作为 image。如需保留原始字段，设为 false。',
+  'clean 为 true 时精简响应：省略空字段、值为数字 0 的字段、动态装扮和菜单等界面数据；省略富文本中重复的原文；清理浮点误差；将静态资源地址替换为编号 <static-N>，卡片可用这些编号作为 image。为 false 保留原始回复。',
   `<example>\n${JSON.stringify(example)}\n</example>`,
   `<urls.ts>\n${dashboardUrlsSource}\n</urls.ts>`,
 ].join('\n')
@@ -49,14 +50,23 @@ const validateToolUrl = (value: string) => {
   return true
 }
 
-const isEmptyField = (value: JsonValue) =>
-  value === null || value === '' || (typeof value === 'object' && Object.keys(value).length === 0)
+const shouldOmitField = (value: JsonValue) =>
+  value === null ||
+  value === '' ||
+  value === 0 ||
+  (typeof value === 'object' && Object.keys(value).length === 0)
 
 const cleanValue = (
   value: JsonValue,
   staticUrls: Map<string, number>,
   section?: string,
 ): JsonValue => {
+  if (typeof value === 'number') {
+    const integer = Math.round(value)
+    return value > integer - integerRoundTolerance && value < integer + integerRoundTolerance
+      ? integer
+      : value
+  }
   if (typeof value === 'string') {
     return value.replace(staticUrlPattern, url => {
       const index = staticUrls.get(url) ?? staticUrls.size + 1
@@ -77,7 +87,7 @@ const cleanValue = (
           ([key, field]) => section !== 'rich_text_nodes' || key !== 'orig_text' || field !== text,
         )
         .map(([key, field]) => [key, cleanValue(field, staticUrls, key)] as const)
-        .filter(([, field]) => !isEmptyField(field)),
+        .filter(([, field]) => !shouldOmitField(field)),
     )
   }
   return value

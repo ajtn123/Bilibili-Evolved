@@ -47,7 +47,6 @@
             <div
               v-if="turn.cards.length"
               class="dashboard-home-ai-cards"
-              data-content-card-layout="horizontal"
               role="region"
               aria-label="回复中的卡片"
               tabindex="0"

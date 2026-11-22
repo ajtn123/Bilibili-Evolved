@@ -13,6 +13,7 @@ export const plugin: PluginMetadata = {
       tabs.push({
         id: 'ai-agent',
         name: 'AI 助手',
+        fixedLayout: 'horizontal',
         component: () => import('./AgentTab.vue').then(module => module.default),
       })
     })

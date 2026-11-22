@@ -8,8 +8,10 @@
 .dashboard-home-ai {
   @include v-stretch(var(--dashboard-home-space-md));
   box-sizing: border-box;
-  inline-size: min(100%, 60rem);
+  flex-grow: 1;
+  inline-size: 100%;
   min-inline-size: 0;
+  max-inline-size: 60rem;
   padding-inline: var(--dashboard-home-grid-padding-inline);
 
   &-log {
@@ -83,7 +85,7 @@
 
   &-cards {
     overflow-x: auto;
-    padding: var(--dashboard-home-space-xs);
+    padding-block: var(--dashboard-home-space-xs);
 
     &:focus-visible {
       outline: var(--dashboard-home-accent-stroke-width) solid var(--theme-color);
@@ -94,7 +96,15 @@
       display: grid;
       grid-auto-flow: column;
       grid-template-rows: repeat(2, auto);
-      grid-auto-columns: min(100%, 360px);
+      grid-auto-columns: min(
+        100%,
+        calc(
+          (
+              var(--dashboard-home-card-view-max-inline-size) - 2 *
+                var(--dashboard-home-grid-padding-inline) + var(--dashboard-home-grid-gap)
+            ) / var(--dashboard-home-card-column-count) - var(--dashboard-home-grid-gap)
+        )
+      );
       gap: var(--dashboard-home-grid-gap);
       margin: 0;
       padding: 0;

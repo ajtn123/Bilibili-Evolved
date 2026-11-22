@@ -1,11 +1,4 @@
 import { getDescriptionHTML } from '@/components/description'
-import {
-  getLinkType,
-  getWebUrl,
-} from '../../../components/style/home-redesign/dashboard/shared/urls'
-import type { ContentCardData } from '../../../components/style/home-redesign/dashboard/shared/cards/content-card'
-
-export const replyCardLimit = 8
 
 const markdownElements = new Set(
   'a blockquote br code del em h1 h2 h3 h4 h5 h6 hr li ol p pre strong table tbody td th thead tr ul'.split(
@@ -13,7 +6,7 @@ const markdownElements = new Set(
   ),
 )
 
-const getLink = (value: string | null) => {
+export const getLink = (value: string | null) => {
   if (!value || !URL.canParse(value, location.href)) {
     return undefined
   }
@@ -21,46 +14,12 @@ const getLink = (value: string | null) => {
   return url.protocol === 'https:' || url.protocol === 'http:' ? url : undefined
 }
 
-const getImageUrl = (url: URL | undefined) => {
+export const getImageUrl = (url: URL | undefined) => {
   if (!url || !/(?:^|\.)(?:hdslb|biliimg|bilibili)\.com$/.test(url.hostname)) {
     return undefined
   }
   url.protocol = 'https:'
   return url.href
-}
-
-export const getReplyCards = (
-  input: unknown,
-  staticUrls: ReadonlyMap<string, number>,
-): ContentCardData[] => {
-  if (!Array.isArray(input)) {
-    return []
-  }
-  const imageUrls = new Map([...staticUrls].map(([url, index]) => [`<static-${index}>`, url]))
-  const cards: ContentCardData[] = []
-  for (const item of input) {
-    if (cards.length === replyCardLimit) {
-      break
-    }
-    if (!item || typeof item.title !== 'string' || !item.title.trim()) {
-      continue
-    }
-    const link = getLink(getWebUrl(item.link))
-    if (!link) {
-      continue
-    }
-    const image = typeof item.image === 'string' ? item.image.trim() : ''
-    const coverUrl = getImageUrl(getLink(getWebUrl(imageUrls.get(image) ?? image)))
-    const type = getLinkType(link)
-    cards.push({
-      title: item.title.trim(),
-      description: typeof item.description === 'string' ? item.description : undefined,
-      url: link.href,
-      coverUrl,
-      kind: type === 'video' || type === 'column' ? type : 'other',
-    })
-  }
-  return cards
 }
 
 export const renderReplyMarkdown = async (reply: string) => {
