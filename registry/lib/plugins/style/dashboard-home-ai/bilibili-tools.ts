@@ -20,9 +20,9 @@ const decorativeFields = new Map([
 ])
 
 export const bilibiliToolsPrompt = [
-  '请求 Bilibili API，每次只提交一个请求，由用户批准。',
+  '请求 Bilibili API 时，每次只提交一个请求，由插件按照用户选择的审批模式处理。',
   '仅允许请求 bilibili.com 及其子域名的 HTTPS 地址，请根据下方 urls.ts 的接口参考选择参数。',
-  'clean 为 true 时，精简响应：省略空字段、动态装扮和菜单等界面数据，省略富文本中重复的原文，并将静态资源地址替换为 <static>。如需原始字段或图片地址，设为 false。',
+  'clean 为 true 时，精简响应：省略空字段、动态装扮和菜单等界面数据，省略富文本中重复的原文，并将静态资源地址替换为编号 <static-N>。卡片可用这些编号作为 image。如需保留原始字段，设为 false。',
   `<example>\n${JSON.stringify(example)}\n</example>`,
   `<urls.ts>\n${dashboardUrlsSource}\n</urls.ts>`,
 ].join('\n')
@@ -52,12 +52,20 @@ const validateToolUrl = (value: string) => {
 const isEmptyField = (value: JsonValue) =>
   value === null || value === '' || (typeof value === 'object' && Object.keys(value).length === 0)
 
-const cleanValue = (value: JsonValue, section?: string): JsonValue => {
+const cleanValue = (
+  value: JsonValue,
+  staticUrls: Map<string, number>,
+  section?: string,
+): JsonValue => {
   if (typeof value === 'string') {
-    return value.replace(staticUrlPattern, '<static>')
+    return value.replace(staticUrlPattern, url => {
+      const index = staticUrls.get(url) ?? staticUrls.size + 1
+      staticUrls.set(url, index)
+      return `<static-${index}>`
+    })
   }
   if (Array.isArray(value)) {
-    return value.map(item => cleanValue(item, section))
+    return value.map(item => cleanValue(item, staticUrls, section))
   }
   if (value !== null && typeof value === 'object') {
     const omitted = decorativeFields.get(section)
@@ -68,19 +76,19 @@ const cleanValue = (value: JsonValue, section?: string): JsonValue => {
         .filter(
           ([key, field]) => section !== 'rich_text_nodes' || key !== 'orig_text' || field !== text,
         )
-        .map(([key, field]) => [key, cleanValue(field, key)] as const)
+        .map(([key, field]) => [key, cleanValue(field, staticUrls, key)] as const)
         .filter(([, field]) => !isEmptyField(field)),
     )
   }
   return value
 }
 
-const readBody = (body: string, clean: boolean): JsonValue => {
+const readBody = (body: string, clean: boolean, staticUrls: Map<string, number>): JsonValue => {
   try {
     const json: JsonValue = JSON.parse(body)
-    return clean ? cleanValue(json) : json
+    return clean ? cleanValue(json, staticUrls) : json
   } catch {
-    return clean ? cleanValue(body) : body
+    return clean ? cleanValue(body, staticUrls) : body
   }
 }
 
@@ -89,9 +97,10 @@ export const runToolRequest = async (
   url: string,
   clean: boolean,
   signal: AbortSignal,
+  staticUrls: Map<string, number>,
 ): Promise<ToolResult> => {
   if (!validateToolUrl(url)) {
-    return { status: 400, body: '<URL-not-allowed>', truncated: false }
+    throw new Error('请求地址必须是 B 站的 HTTPS 地址。')
   }
   const response = await fetch(url, {
     method,
@@ -109,7 +118,7 @@ export const runToolRequest = async (
     return { status, body: body.slice(0, responseLimit), truncated: true }
   }
 
-  const result = readBody(body, clean)
+  const result = readBody(body, clean, staticUrls)
   const text = typeof result === 'string' ? result : JSON.stringify(result)
   if (text.length > responseLimit) {
     return { status, body: text.slice(0, responseLimit), truncated: true }

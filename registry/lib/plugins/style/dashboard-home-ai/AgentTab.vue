@@ -44,6 +44,24 @@
               v-html="turn.replyHtml"
             />
             <p v-else class="dashboard-home-ai-plain">{{ turn.reply }}</p>
+            <div
+              v-if="turn.cards.length"
+              class="dashboard-home-ai-cards"
+              data-content-card-layout="horizontal"
+              role="region"
+              aria-label="回复中的卡片"
+              tabindex="0"
+            >
+              <ul role="list">
+                <li
+                  v-for="(card, cardIndex) in turn.cards"
+                  :key="cardIndex"
+                  class="dashboard-home-card-grid-item"
+                >
+                  <ContentCard :data="card" />
+                </li>
+              </ul>
+            </div>
           </div>
           <p v-if="turn.cancelled" class="dashboard-home-ai-feedback">已取消本轮对话。</p>
         </div>
@@ -132,6 +150,7 @@
 import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
 import { getAIProviders } from '@/core/ai'
 import { VIcon } from '@/ui'
+import ContentCard from '../../../components/style/home-redesign/dashboard/shared/cards/ContentCard.vue'
 import type { ToolResult } from './bilibili-tools'
 import {
   agentError,

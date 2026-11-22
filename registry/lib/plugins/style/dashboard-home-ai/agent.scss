@@ -28,6 +28,7 @@
 
   &-message {
     align-self: start;
+    box-sizing: border-box;
     max-inline-size: 100%;
     padding: var(--dashboard-home-space-sm) var(--dashboard-home-space-md);
     border-radius: var(--dashboard-home-control-radius);
@@ -77,6 +78,31 @@
     th,
     td {
       padding: var(--dashboard-home-space-2xs) var(--dashboard-home-space-xs);
+    }
+  }
+
+  &-cards {
+    overflow-x: auto;
+    padding: var(--dashboard-home-space-xs);
+
+    &:focus-visible {
+      outline: var(--dashboard-home-accent-stroke-width) solid var(--theme-color);
+      outline-offset: calc(-1 * var(--dashboard-home-accent-stroke-width));
+    }
+
+    > ul {
+      display: grid;
+      grid-auto-flow: column;
+      grid-template-rows: repeat(2, auto);
+      grid-auto-columns: min(100%, 360px);
+      gap: var(--dashboard-home-grid-gap);
+      margin: 0;
+      padding: 0;
+      list-style: none;
+
+      &:has(> :only-child) {
+        grid-template-rows: auto;
+      }
     }
   }
 
